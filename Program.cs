@@ -1,10 +1,12 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using Microsoft.NET.HostModel.AppHost;
-using Newtonsoft.Json;
+using Mono.Cecil;
 using Newtonsoft.Json.Linq;
 
 namespace VanillaCorifier;
@@ -34,6 +36,7 @@ internal static class Program {
     public static void Main(string[] args) {
         string inputPath = "./Celeste.exe";
         string outputPath = "./CelesteVCore.dll";
+        string forcedPlatform = "";
         for (int i = 0; i < args.Length; i++) {
             switch (args[i]) {
                 case "--input":
@@ -41,6 +44,9 @@ internal static class Program {
                     break;
                 case "--output":
                     outputPath = ConsumeNextArg(args, ref i);
+                    break;
+                case "--platform":
+                    forcedPlatform = ConsumeNextArg(args, ref i);
                     break;
             }
         }
@@ -53,7 +59,13 @@ internal static class Program {
         string inputDir = Path.GetFullPath(Path.GetDirectoryName(inputPath)!);
 
         // TODO: XNA-FNA relink
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (forcedPlatform != "") {
+            if (!Enum.TryParse(forcedPlatform, true, out InstallPlatform res)) {
+                throw new InvalidEnumArgumentException($"Could not parse {forcedPlatform} as a platform!");
+            }
+
+            Platform = res;
+        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             Platform = InstallPlatform.Windows;
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             Platform = InstallPlatform.Linux;
@@ -152,6 +164,9 @@ internal static class Program {
             File.Move(exePdb + "1", exePdb);
         }
         
+        // Relink to FNA if necessary
+        RelinkToFNA(outputPath, Path.Combine(outputDir, "FNA.dll")); // FNA.dll should be there already from the library copy
+        
         Assembly miniinstallerAsm = everestPath.LoadMiniInstaller();
 
         Type miniinstallerProgramType = miniinstallerAsm.GetTypeSafe("MiniInstaller.Program");
@@ -169,7 +184,9 @@ internal static class Program {
         string outputDir = Path.GetDirectoryName(appDll)!;
         string inputDir = Path.GetDirectoryName(appExe)!;
         // We only support setting copying the host resources on Windows
-        if (Platform != InstallPlatform.Windows)
+        // don't use `Platform` here since it may hold an arbitrary value and this copy is only possible when patching
+        // under windows
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             resDll = null;
 
         // (Do not) Delete MonoKickstart files
@@ -217,6 +234,38 @@ internal static class Program {
         
         // Finally copy the piton-runtime.yaml
         everestPath.CopyFileTo(Path.Combine("everest-lib", "piton-runtime.yaml"), outputDir);
+    }
+
+    // Why should this not be inlined, well, basically because we wont be able to resolve cecil until the everest path
+    // is made, as such the compilation of the calling method must not trigger this method getting checked, and consequently
+    // trying to load cecil
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void RelinkToFNA(string outputPath, string fnaPath) {
+        Console.WriteLine("Attempting to relink to FNA.");
+        ModuleDefinition modDef = ModuleDefinition.ReadModule(outputPath, new ReaderParameters(ReadingMode.Immediate));
+        // Check first to possibly skip the fna dll load
+        List<int> toRemove = [];
+        for (int i = 0; i < modDef.AssemblyReferences.Count; i++) {
+            Console.WriteLine(modDef.AssemblyReferences[i].Name);
+            if (!modDef.AssemblyReferences[i].Name.StartsWith("Microsoft.Xna.Framework")) continue;
+            toRemove.Add(i);
+        }
+
+        if (toRemove.Count != 0) {
+            Console.WriteLine($"Relinking {toRemove.Count} references.");
+            // Load fna as late as possible
+            ModuleDefinition fnaDef = ModuleDefinition.ReadModule(fnaPath, new ReaderParameters(ReadingMode.Deferred));
+            modDef.AssemblyReferences.Add(fnaDef.Assembly.Name);
+            // Removing will shift prior elements, so remove last first
+            toRemove.Reverse();
+            foreach (int i in toRemove) {
+                modDef.AssemblyReferences.RemoveAt(i);
+            }
+            // Use a different name to evade file locks
+            modDef.Write(outputPath + "1");
+            modDef.Dispose();
+            File.Move(outputPath + "1", outputPath, true);
+        }
     }
 
     private static void WriteLDLIBWrapper(string dest) {
@@ -282,7 +331,7 @@ internal static class Program {
 
         private string Path { get; }
         public Assembly LoadCoreifier(string dir) {
-            CopyFileTo(System.IO.Path.Combine(Path, "NETCoreifer.dll"), System.IO.Path.Combine(dir));
+            CopyFileTo(System.IO.Path.Combine(Path, "NETCoreifier.dll"), System.IO.Path.Combine(dir));
             return Assembly.LoadFile(System.IO.Path.Combine(dir, "NETCoreifier.dll"));
         }
 
