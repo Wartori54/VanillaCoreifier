@@ -6,6 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UseAppHost>false</UseAppHost>
+        <RootNamespace>VanillaCorifier</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
