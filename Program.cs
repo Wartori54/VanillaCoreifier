@@ -9,7 +9,7 @@ using Microsoft.NET.HostModel.AppHost;
 using Mono.Cecil;
 using Newtonsoft.Json.Linq;
 
-namespace VanillaCorifier;
+namespace VanillaCoreifier;
 
 internal static class Program {
     private static InstallPlatform Platform;
@@ -24,7 +24,7 @@ internal static class Program {
             }
         }
 
-        return new LocalEverestPath(".");
+        return new LocalEverestPath(".."); // Default to parent strategically
     }
 
     private static string ConsumeNextArg(string[] args, ref int i) {
@@ -35,7 +35,7 @@ internal static class Program {
 
     public static void Main(string[] args) {
         string inputPath = "./Celeste.exe";
-        string outputPath = "./CelesteVCore.dll";
+        string outputFile = "CelesteVCore.dll";
         string forcedPlatform = "";
         for (int i = 0; i < args.Length; i++) {
             switch (args[i]) {
@@ -43,7 +43,7 @@ internal static class Program {
                     inputPath = ConsumeNextArg(args, ref i);
                     break;
                 case "--output":
-                    outputPath = ConsumeNextArg(args, ref i);
+                    outputFile = ConsumeNextArg(args, ref i);
                     break;
                 case "--platform":
                     forcedPlatform = ConsumeNextArg(args, ref i);
@@ -55,9 +55,9 @@ internal static class Program {
         //     throw new Exception("Input path and output path must be in the same directory!");
 
         using IEverestPath everestPath = ObtainPathFromArgs(args);
-        string outputDir = Path.GetFullPath(Path.GetDirectoryName(outputPath)!);
         string inputDir = Path.GetFullPath(Path.GetDirectoryName(inputPath)!);
-
+        string outputPath = Path.Combine(inputDir, outputFile);
+        
         // TODO: XNA-FNA relink
         if (forcedPlatform != "") {
             if (!Enum.TryParse(forcedPlatform, true, out InstallPlatform res)) {
@@ -74,7 +74,7 @@ internal static class Program {
         else
             throw new InvalidOperationException();
         
-        everestPath.CopyDirTo("everest-lib", outputDir);
+        everestPath.CopyDirTo("everest-lib", inputDir);
         
         Dictionary<string, string> fileNameMap = new();
         List<string> sourceLibs;
@@ -110,7 +110,7 @@ internal static class Program {
             default: throw new ArgumentOutOfRangeException();
         }
         
-        string[] everestLibs = Directory.GetFiles(Path.Combine(outputDir, "everest-lib",  libTarget));
+        string[] everestLibs = Directory.GetFiles(Path.Combine(inputDir, "everest-lib",  libTarget));
         
         for (int i = 0; i < everestLibs.Length; i++) {
             bool replaced = false;
@@ -130,21 +130,21 @@ internal static class Program {
             if (fileNameMap.TryGetValue(dst, out string? newDst)) {
                 dst = newDst;
             }
-            if (file == Path.Combine(outputDir, dst)) continue; // This may happen for windows as we target too many dlls
-            File.Copy(file, Path.Combine(outputDir, dst), true);
+            if (file == Path.Combine(inputDir, dst)) continue; // This may happen for windows as we target too many dlls
+            File.Copy(file, Path.Combine(inputDir, dst), true);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) { // Linux requires the symlinks to the original file names
-                string symlinkDest = Path.Combine(outputDir, Path.GetFileName(file));
+                string symlinkDest = Path.Combine(inputDir, Path.GetFileName(file));
                 if (!File.Exists(symlinkDest)) {
                     File.CreateSymbolicLink(symlinkDest,
-                        Path.Combine(outputDir, Path.GetFileName(dst)));
+                        Path.Combine(inputDir, Path.GetFileName(dst)));
                 }
             }
         }
         
-        everestPath.CopyFileTo(Path.Combine("everest-lib", "FNA.dll"), outputDir);
-        everestPath.CopyFileTo(Path.Combine("everest-lib", "FNA.pdb"), outputDir);
+        everestPath.CopyFileTo(Path.Combine("everest-lib", "FNA.dll"), inputDir);
+        everestPath.CopyFileTo(Path.Combine("everest-lib", "FNA.pdb"), inputDir);
         
-        Assembly coreifierAsm = everestPath.LoadCoreifier(outputDir);
+        Assembly coreifierAsm = everestPath.LoadCoreifier(inputDir);
 
         Type coreifierType = coreifierAsm.GetTypeSafe("NETCoreifier.Coreifier");
         MethodBase coreifyMethod = coreifierType.GetMethodPSSafe("ConvertToNetCore", [typeof(string), typeof(string)]);
@@ -165,7 +165,7 @@ internal static class Program {
         }
         
         // Relink to FNA if necessary
-        RelinkToFNA(outputPath, Path.Combine(outputDir, "FNA.dll")); // FNA.dll should be there already from the library copy
+        RelinkToFNA(outputPath, Path.Combine(inputDir, "FNA.dll")); // FNA.dll should be there already from the library copy
         
         Assembly miniinstallerAsm = everestPath.LoadMiniInstaller();
 

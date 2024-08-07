@@ -2,11 +2,12 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UseAppHost>false</UseAppHost>
-        <RootNamespace>VanillaCorifier</RootNamespace>
+        <RootNamespace>VanillaCoreifier</RootNamespace>
+        <LangVersion>12</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -29,20 +30,20 @@
     <!-- Bind AppHosts for MiniInstaller itself -->
     <Target Name="IncludeAppHosts" BeforeTargets="AssignTargetPaths">
         <PropertyGroup>
-            <AppHostIntermediatePath_win-x64>$(IntermediateOutputPath)\VanillaCorifier-win64.exe</AppHostIntermediatePath_win-x64>
-            <AppHostIntermediatePath_linux-x64>$(IntermediateOutputPath)\VanillaCorifier-linux</AppHostIntermediatePath_linux-x64>
-            <AppHostIntermediatePath_osx-x64>$(IntermediateOutputPath)\VanillaCorifier-osx</AppHostIntermediatePath_osx-x64>
+            <AppHostIntermediatePath_win-x64>$(IntermediateOutputPath)\VanillaCoreifier-win64.exe</AppHostIntermediatePath_win-x64>
+            <AppHostIntermediatePath_linux-x64>$(IntermediateOutputPath)\VanillaCoreifier-linux</AppHostIntermediatePath_linux-x64>
+            <AppHostIntermediatePath_osx-x64>$(IntermediateOutputPath)\VanillaCoreifier-osx</AppHostIntermediatePath_osx-x64>
         </PropertyGroup>
 
         <ItemGroup>
-            <Content Include="$(AppHostIntermediatePath_win-x64)" TargetPath="VanillaCorifier-win64.exe" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
-            <Content Include="$(AppHostIntermediatePath_linux-x64)" TargetPath="VanillaCorifier-linux" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
-            <Content Include="$(AppHostIntermediatePath_osx-x64)" TargetPath="VanillaCorifier-osx" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+            <Content Include="$(AppHostIntermediatePath_win-x64)" TargetPath="VanillaCoreifier-win64.exe" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+            <Content Include="$(AppHostIntermediatePath_linux-x64)" TargetPath="VanillaCoreifier-linux" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+            <Content Include="$(AppHostIntermediatePath_osx-x64)" TargetPath="VanillaCoreifier-osx" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
         </ItemGroup>
     </Target>
 
     <Target Name="BindAppHosts" AfterTargets="CoreCompile" DependsOnTargets="IncludeAppHosts">
-        <Message Importance="High" Text="Binding VanillaCorifier AppHosts..." />
+        <Message Importance="High" Text="Binding VanillaCoreifier AppHosts..." />
 
         <CreateAppHost AppHostSourcePath="$(AppHost_win-x64)" AppHostDestinationPath="$(AppHostIntermediatePath_win-x64)" AppBinaryName="$(AssemblyName)$(TargetExt)" IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')" />
         <CreateAppHost AppHostSourcePath="$(AppHost_linux-x64)" AppHostDestinationPath="$(AppHostIntermediatePath_linux-x64)" AppBinaryName="$(AssemblyName)$(TargetExt)" IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')" />
