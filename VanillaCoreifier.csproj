@@ -8,6 +8,7 @@
         <UseAppHost>false</UseAppHost>
         <RootNamespace>VanillaCoreifier</RootNamespace>
         <LangVersion>12</LangVersion>
+        <PathMap>$(MSBuildProjectDirectory)=VanillaCoreifier/</PathMap>
     </PropertyGroup>
 
     <ItemGroup>
