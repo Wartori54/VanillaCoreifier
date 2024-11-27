@@ -169,7 +169,7 @@ internal static class Program {
         
         Assembly miniinstallerAsm = everestPath.LoadMiniInstaller();
 
-        Type miniinstallerProgramType = miniinstallerAsm.GetTypeSafe("MiniInstaller.Program");
+        Type miniinstallerProgramType = miniinstallerAsm.GetTypeSafe("MiniInstaller.Program", "MiniInstaller.LibAndDepHandling");
         MethodBase runtimeJsonMethod =
             miniinstallerProgramType.GetMethodPSSafe("CreateRuntimeConfigFiles", [typeof(string), typeof(string[])]);
         runtimeJsonMethod.Invoke(null, [outputPath, null]);
@@ -495,8 +495,8 @@ internal static class Program {
         }
     }
 
-    private static Type GetTypeSafe(this Assembly asm, string target) {
-        return asm.GetType(target) ?? throw new Exception($"Could not find type {target} in assembly {asm.GetName()} ({asm.Location})");
+    private static Type GetTypeSafe(this Assembly asm, string target, params string[] fallbacks) {
+        return asm.GetType(target) ?? fallbacks.Select(asm.GetType).FirstOrDefault(t => t != null, null) ?? throw new Exception($"Could not find type {target} in assembly {asm.GetName()} ({asm.Location})");
     }
 
     private static MethodBase GetMethodPSSafe(this Type type, string name, Type[] args) {
