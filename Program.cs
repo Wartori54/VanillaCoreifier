@@ -169,7 +169,7 @@ internal static class Program {
         
         Assembly miniinstallerAsm = everestPath.LoadMiniInstaller();
 
-        Type miniinstallerProgramType = miniinstallerAsm.GetTypeSafe("MiniInstaller.Program", "MiniInstaller.LibAndDepHandling");
+        Type miniinstallerProgramType = miniinstallerAsm.GetTypeSafe("MiniInstaller.LibAndDepHandling", "MiniInstaller.Program");
         MethodBase runtimeJsonMethod =
             miniinstallerProgramType.GetMethodPSSafe("CreateRuntimeConfigFiles", [typeof(string), typeof(string[])]);
         runtimeJsonMethod.Invoke(null, [outputPath, null]);
