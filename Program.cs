@@ -24,6 +24,7 @@ internal static class Program {
             }
         }
 
+        Console.WriteLine("Defaulting everest path to ..");
         return new LocalEverestPath(".."); // Default to parent strategically
     }
 
@@ -321,6 +322,10 @@ internal static class Program {
     private class LocalEverestPath : IEverestPath {
 
         public LocalEverestPath(string path) {
+            // Probe the path first
+            if (!Directory.Exists(System.IO.Path.Combine(path, "everest-lib"))) {
+                throw new FileNotFoundException($"Provided path {path} doesn't look like an everest install!");
+            }
             Path = System.IO.Path.GetFullPath(path);
             AssemblyLoadContext.Default.Resolving += (context, name) => {
                 string inEverest = System.IO.Path.Combine(Path, name.Name!) + ".dll";
