@@ -9,6 +9,7 @@
         <RootNamespace>VanillaCoreifier</RootNamespace>
         <LangVersion>12</LangVersion>
         <PathMap>$(MSBuildProjectDirectory)=VanillaCoreifier/</PathMap>
+        <Version>1.0.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
@@ -28,7 +29,6 @@
         <AppHost_osx-x64>$(Pkgruntime_osx-x64_Microsoft_NETCore_DotNetAppHost)\runtimes\osx-x64\native\apphost</AppHost_osx-x64> 
     </PropertyGroup>
 
-    <!-- Bind AppHosts for MiniInstaller itself -->
     <Target Name="IncludeAppHosts" BeforeTargets="AssignTargetPaths">
         <PropertyGroup>
             <AppHostIntermediatePath_win-x64>$(IntermediateOutputPath)\VanillaCoreifier-win64.exe</AppHostIntermediatePath_win-x64>
